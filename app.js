@@ -4,21 +4,24 @@ const bodyParser = require('body-parser');
 
 const mongoose = require('mongoose');
 
-require('dotenv').config();
-const config = require('./config.env');
-
-
 
 const DB = require('./config.js');
+
+
+
+// const DB = require('./config.js');
 
 const port = DB.PORT;
 const url = DB.url;
 
+var db = mongoose.connection;
+
 mongoose.connect(url, {
-    useNewUrlParser: true,
     useCreateIndex: true,
     useFindAndModify: false,
     useUnifiedTopology: true,
+    useNewUrlParser: true,
+
 }).then(() => console.log('DB connection successful'));
 
 
@@ -32,46 +35,72 @@ app.use(bodyParser.urlencoded({
 
 
 
-app.post('/SIGN_UP', (req, res) => {
-    let name = req.body.name;
-    let password = req.body.password;
-    let email = req.body.email;
-    let veremail = req.body.veremail;
-    let phone = req.body.phone;
+app.post('/SIGN_UP', async (req, res) => {
 
-    let data = {
-        "name": name,
-        "password": password,
-        "email": email,
-        "Verification email": veremail,
-        "Phone number": phone
-    }
+    try {
+        const data = await model.create(req.body);
+        if (data.veremail !== data.email) {
+            res.status(201).json({
+                status: 'Successfully signed up!Keep a watch on your registered email id and phone number for further updates!',
+                data: data
 
-    if (email !== veremail) {
-        res.status(400).json({
+            })
+        } else {
+            res.status(400).json({
+                status: 'failed',
+                message: 'Verification email and entered email does not match'
+            })
+        }
+
+    } catch (err) {
+        res.status(404).json({
             status: 'failed',
-            message: 'Verification email does not match!'
-
+            message: 'Connection error!Try again'
         })
-    } else {
-
-        db.collection('Neuro-project-1').insertOne(data, (err, collection) => {
-            if (err) {
-                res.status(400).json({
-                    status: 'Failed',
-                    message: 'Error in connection'
-                })
-            } else {
-                res.status(200).json({
-                    status: 'Success',
-                    message: 'Data registered.Keep a watch at your email and phone number for updates!'
-                })
-            }
-        })
-
 
     }
+
+    //     let name = req.body.name;
+    //     let password = req.body.password;
+    //     let email = req.body.email;
+    //     let veremail = req.body.veremail;
+    //     let phone = req.body.phone;
+
+    //     let data = {
+    //         "name": name,
+    //         "password": password,
+    //         "email": email,
+    //         "Verification email": veremail,
+    //         "Phone number": phone
+    //     }
+
+    //     if (email !== veremail) {
+    //         res.status(400).json({
+    //             status: 'failed',
+    //             message: 'Verification email does not match!'
+
+    //         })
+    //     } else {
+
+    //         db.collection('Neuro-project-1').insertOne(data, (err, collection) => {
+    //             if (err) {
+    //                 res.status(400).json({
+    //                     status: 'Failed',
+    //                     message: 'Error in connection'
+    //                 })
+    //             } else {
+    //                 res.status(200).json({
+    //                     status: 'Success',
+    //                     message: 'Data registered.Keep a watch at your email and phone number for updates!'
+    //                 })
+    //             }
+    //         })
+
+
+    //     }
+    // })
+
 })
 app.listen(port, () => {
     console.log(`App is listening to port:${port}`);
-});
+})
