@@ -9,6 +9,9 @@ const smtpTransportmodule = require('nodemailer-smtp-transport');
 
 const mongoose = require('mongoose');
 
+const Upvote = require('./upvote.js');
+const Downvote = require('./downvote.js');
+const Question = require('./post.js');
 
 const DB = require('./config.js');
 
@@ -136,7 +139,7 @@ app.post('/SIGN_UP', async (req, res) => {
 })
 
 app.post('/reset-password', (req, res) => {
-    
+
     db.collection('Neuro-project-1')
         .findOne({
             where: {
@@ -145,7 +148,7 @@ app.post('/reset-password', (req, res) => {
         })
         .then((user) => {
             if (!user) {
-               return console.log('No user found with that email address.')
+                return console.log('No user found with that email address.')
             }
             db.collection('Neuro-project-1')
                 .findOne({
@@ -245,6 +248,207 @@ app.post('/reset-password', (req, res) => {
 
 //     }
 // })
+
+app.post('/upvote', (req, res) => {
+
+    Upvote.findOne({
+            questionid: req.body.params.questionid
+        })
+        .then(oneVote => {
+
+            if (oneVote.votes.filter(user => req.body.params.userid).length === 1) {
+
+                Question.updateOne({
+                        _id: req.body.params.questionid
+                    }, {
+                        $inc: {
+                            voteCount: -1
+                        }
+                    })
+                    .then(() => {
+
+                        Upvote.updateOne({
+                                questionid: req.body.params.questionid,
+                            }, {
+                                $pull: {
+                                    votes: {
+                                        user: ObjectId(req.body.params.userid)
+                                    }
+                                }
+                            })
+                            .then(() => console.log('decrement by -1'))
+                    })
+                    .catch(err => console.log(err))
+            } else if (oneVote.votes.filter(user => req.body.params.userid).length === 0) {
+
+                Upvote.findOneAndUpdate({
+                        questionid: req.body.params.questionid,
+                        'votes.user': {
+                            $ne: ObjectId(req.body.params.userid)
+                        }
+                    }, {
+                        $push: {
+                            votes: {
+                                user: ObjectId(req.body.params.userid)
+                            }
+                        }
+                    }, {
+                        useFindAndModify: false
+                    })
+                    .then(oldupvote => {
+                        Downvote.findOne({
+                                questionid: req.body.params.questionid
+                            })
+                            .then(downvote => {
+                                if (downvote.votes.filter(user => req.body.params.userid).length > 0) {
+
+
+                                    Downvote.updateOne({
+                                            questionid: req.body.params.questionid,
+                                        }, {
+                                            $pull: {
+                                                votes: {
+                                                    user: ObjectId(req.body.params.userid)
+                                                }
+                                            }
+                                        })
+                                        .then(() => {
+                                            Question.updateOne({
+                                                    _id: req.body.params.questionid
+                                                }, {
+                                                    $inc: {
+                                                        voteCount: 2
+                                                    }
+                                                })
+                                                .then(() => console.log('increment by 2'))
+                                                .catch(err => console.log(err))
+                                        })
+                                        .catch(err => console.log(err))
+
+
+                                } else {
+                                    Question.updateOne({
+                                            _id: req.body.params.questionid
+                                        }, {
+                                            $inc: {
+                                                voteCount: 1
+                                            }
+                                        })
+                                        .then(() => console.log('increment by 1'))
+                                        .catch(err => console.log(err))
+                                }
+                            })
+                            .catch(err => console.log(err))
+
+                    })
+            }
+
+        })
+        .catch(err => console.log(err))
+})
+
+app.post('/downvote', (req, res) => {
+
+
+    Downvote.findOne({
+            questionid: req.body.params.questionid
+        })
+        .then(oneVote => {
+            if (oneVote.votes.filter(user => req.body.params.userid).length === 1) {
+                Question.updateOne({
+                        _id: req.body.params.questionid
+                    }, {
+                        $inc: {
+                            voteCount: 1
+                        }
+                    })
+                    .then(() => {
+                        Downvote.updateOne({
+                                questionid: req.body.params.questionid,
+                            }, {
+                                $pull: {
+                                    votes: {
+                                        user: ObjectId(req.body.params.userid)
+                                    }
+                                }
+                            })
+                            .then(() => console.log('increment by 1'))
+                            .catch(err => console.log(err))
+
+                    })
+                    .catch(err => console.log(err))
+            } else if (oneVote.votes.filter(user => req.body.params.userid).length === 0) {
+                Downvote.findOneAndUpdate({
+                        questionid: req.body.params.questionid,
+                        'votes.user': {
+                            $ne: ObjectId(req.body.params.userid)
+                        }
+                    }, {
+                        $push: {
+                            votes: {
+                                user: ObjectId(req.body.params.userid)
+                            }
+                        }
+                    }, {
+                        useFindAndModify: false
+                    })
+                    .then(oldownvote => {
+                        Upvote.findOne({
+                                questionid: req.body.params.questionid
+                            })
+                            .then(upvote => {
+                                if (upvote.votes.filter(user => req.body.params.userid).length > 0) {
+                                    Upvote.updateOne({
+                                            questionid: req.body.params.questionid,
+                                        }, {
+                                            $pull: {
+                                                votes: {
+                                                    user: ObjectId(req.body.params.userid)
+                                                }
+                                            }
+                                        })
+                                        .then(() => {
+                                            Question.updateOne({
+                                                    _id: req.body.params.questionid
+                                                }, {
+                                                    $inc: {
+                                                        voteCount: -2
+                                                    }
+                                                })
+                                                .then(() => console.log('decrement by -2'))
+
+                                        })
+                                        .catch(err => console.log(err))
+                                } else {
+                                    Question.updateOne({
+                                            _id: req.body.params.questionid
+                                        }, {
+                                            $inc: {
+                                                voteCount: -1
+                                            }
+                                        })
+                                        .then(() => console.log('decrement by -1'))
+                                        .catch(err => console.log(err))
+                                }
+                            })
+                            .catch(err => console.log(err))
+
+                    })
+                    // .then(() => {
+                    //     Upvote.findOne({ questionid: req.body.params.questionid })
+                    //         .then(updatedupvote => console.log(updatedupvote))
+                    // })
+                    .catch(err => console.log(err))
+
+            }
+
+        })
+        .catch(err => console.log(err))
+
+
+
+})
+
 
 
 app.listen(port, () => {
