@@ -136,16 +136,16 @@ app.post('/SIGN_UP', async (req, res) => {
 })
 
 app.post('/reset-password', (req, res) => {
-    const email = req.body.email
+    
     db.collection('Neuro-project-1')
         .findOne({
             where: {
-                email: email
+                email: req.body.email
             }, //checking if the email address sent by client is present in the db(valid)
         })
         .then((user) => {
             if (!user) {
-                console.log('No user found with that email address.')
+               return console.log('No user found with that email address.')
             }
             db.collection('Neuro-project-1')
                 .findOne({
@@ -179,7 +179,7 @@ app.post('/reset-password', (req, res) => {
                             expire: moment.utc().add(config.tokenExpiry, 'seconds'),
                         }).then((item) => {
                             if (!item)
-                                return throwFailed(res, 'Oops problem in creating new password record')
+                                return (res, 'Oops problem in creating new password record')
                             let mailOptions = {
                                 from: 'arkadiptachatterjee@gmail.com',
                                 to: req.body.email,
