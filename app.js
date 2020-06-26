@@ -51,7 +51,7 @@ app.post('/signup', authController.signup);
 app.post('/login', authController.login);
 
 app.post('/forgotPassword', authController.forgotPassword);
-app.post('/resetPassword', authController.resetPassword);
+app.patch('/resetPassword/:token', authController.resetPassword);
 
 
 
