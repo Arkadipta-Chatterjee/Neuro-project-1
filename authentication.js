@@ -37,7 +37,7 @@ exports.signup = catchAsync(async (req, res, next) => {
     await new Email(newUser, url).sendConfirmationEmail();
 
     createSendToken(newUser, 201, res);
-    res.send('Email Sent!');
+    res.send('Finish the sign up process by clicking on the link in the email sent to the registered email Id');
 
 });
 
